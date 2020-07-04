@@ -27,7 +27,7 @@ class DisjointSet:
         return -1;
 
     # combines the two partitions of element1 and element2 if they aren't already in the same partition
-    def combine(self, element1, element2):
+    def union(self, element1, element2):
 
         partition1Index = self.find(element1)
         partition2Index = self.find(element2)
@@ -69,9 +69,9 @@ if __name__ == "__main__":
     testSet = DisjointSet([1, 2, 3, 4, 5, 6, 7, 8, 9, 0])
     print(testSet)
     print(testSet.find(1))
-    testSet.combine(2, 9)
+    testSet.union(2, 9)
     print(testSet)
-    testSet.combine(2, 7)
+    testSet.union(2, 7)
     print(testSet)
     print(testSet.find(7) == testSet.find(9))
     print(testSet.find(7) == testSet.find(3))
