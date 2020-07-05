@@ -2,6 +2,7 @@ from PIL import Image
 import numpy as np
 from random import randint
 from disjointSet import DisjointSet
+from mazeSpace import *
 
 def generateMaze(mazeSize, imageSize):
 
@@ -9,31 +10,25 @@ def generateMaze(mazeSize, imageSize):
     if mazeSize % 2 == 0:
         mazeSize += 1
 
-    # setup an array for image creation and fill it with white
+    # get a list of what walls should be drawn
+    mazeList = calculateMaze(mazeSize)
+
+    # draw it as an image
+    drawMaze(mazeList, mazeSize, imageSize)
+
+def drawMaze(mazeList, mazeSize, imageSize):
+
+    # setup an array for image creation
     data = np.zeros((mazeSize, mazeSize, 3), dtype=np.uint8)
-    data[0:mazeSize, 0:mazeSize] = [255, 255, 255]
 
-    # get a list of what walls should be drawn and keep track of the current one
-    wallList = calculateWalls(mazeSize)
-    currentWall = 0
-
-    # draw black on the boarders and walls of the maze
+    # fill the image in based on the mazeList
     for row in range(mazeSize):
         for col in range(mazeSize):
 
-            # make edges black
-            if row == 0 or col == 0 or row == mazeSize - 1 or col == mazeSize - 1:
+            if mazeList[row][col].spaceType == SpaceType.space:
+                data[row, col] = [255, 255, 255]
+            else:
                 data[row, col] = [0, 0, 0]
-            # make intersections of walls black
-            elif row % 2 == 0 and col % 2 == 0:
-                data[row, col] = [0, 0, 0]
-            # go through walls
-            elif row % 2 == 0 or col % 2 == 0 and not (row % 2 == 0 and col % 2 == 0):
-                # color them based on earlier calculations using a disjoint set
-                if wallList[currentWall]:
-                    data[row, col] = [0, 0, 0]
-                
-                currentWall += 1
 
     # turn the array into an image and save it
     img = Image.fromarray(data, 'RGB')
@@ -41,43 +36,67 @@ def generateMaze(mazeSize, imageSize):
     img.save('maze.png')
     img.show()
 
-def calculateWalls(mazeSize):
+def calculateMaze(mazeSize):
 
-    # figure out how many walls there are
-    mainWallPortion = (mazeSize - 1) / 2
-    otherWallPortion = mainWallPortion - 1
-    wallPortionAmount = (mazeSize - 3) / 2
+    mazeList = []
+    currentRow = None
 
-    wallCount = (int)(wallPortionAmount * (mainWallPortion + otherWallPortion) + otherWallPortion)
+    for row in range(mazeSize):
+        currentRow = []
+        mazeList.append(currentRow)
+        for col in range(mazeSize):
+            # mark edges
+            if row == 0 or col == 0 or row == mazeSize - 1 or col == mazeSize - 1:
+                currentRow.append(MazeSpace(SpaceType.edge))
+            # mark corners
+            elif row % 2 == 0 and col % 2 == 0:
+                currentRow.append(MazeSpace(SpaceType.corner))
+            # mark walls
+            elif row % 2 == 0 or col % 2 == 0 and not (row % 2 == 0 and col % 2 == 0):
+                currentRow.append(MazeSpace(SpaceType.wall))
+            # mark spaces
+            else:
+                currentRow.append(MazeSpace(SpaceType.space))
 
     walls = []
+    spaces = []
 
-    for wall in range(wallCount):
-        walls.append(True)
+    # add walls/spaces to their respective lists
+    for row in range(mazeSize):
+        for col in range(mazeSize):
 
-    # do disjoint set calculations
-    wallIndexList = []
-    for wall in range(wallCount):
-        wallIndexList.append(wall)
+            currentSpace = mazeList[row][col]
+            
+            if currentSpace.spaceType == SpaceType.wall:
+                walls.append(currentSpace)
 
-    disjointWallSet = DisjointSet(wallIndexList)
+                # go through neighboring spaces and add them to the neighbor list if their spaceType is space
+                for space in [mazeList[row - 1][col], mazeList[row + 1][col], mazeList[row][col - 1], mazeList[row][col + 1]]:
+                    
+                    if space.spaceType == SpaceType.space:
+                        currentSpace.neighbors.append(space)
 
-    # pick 2 random, if they are in different partitions combine and remove wall, if in same partition remove from list
+                        spaces.append(space)
 
-    while len(wallIndexList) > 1:
-        wall1Index = randint(0, len(wallIndexList) - 1)
-        wall1 = wallIndexList[wall1Index]
+    disjointSpaceSet = DisjointSet(spaces)
 
-        wallIndexList.remove(wall1)
+    # pick a wall and get it's neighboring spaces, if they are in different partitions combine and remove the wall
 
-        wall2Index = randint(0, len(wallIndexList) - 1)
-        wall2 = wallIndexList[wall2Index]
+    while len(walls) > 1:
+        wallIndex = randint(0, len(walls) - 1)
+        wall = walls[wallIndex]
 
-        if (disjointWallSet.find(wall1) != disjointWallSet.find(wall2)):
+        walls.remove(wall)
 
-            walls[wall1] = False
-            disjointWallSet.union(wall1, wall2)
+        if (disjointSpaceSet.find(wall.neighbors[0]) != disjointSpaceSet.find(wall.neighbors[1])):
 
-    return walls
+            wall.spaceType = SpaceType.space
+            disjointSpaceSet.union(wall.neighbors[0], wall.neighbors[1])
 
-generateMaze(11, 500)
+    # open the start and end of the maze
+    mazeList[0][1].spaceType = SpaceType.space
+    mazeList[mazeSize - 1][mazeSize - 2].spaceType = SpaceType.space
+
+    return mazeList
+
+generateMaze(51, 500)
