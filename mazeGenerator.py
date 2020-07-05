@@ -99,4 +99,37 @@ def calculateMaze(mazeSize):
 
     return mazeList
 
-generateMaze(51, 500)
+while True:
+    # get inputs
+    while True:
+        sizeIn = input("How large should the maze be? ")
+        try:
+            size = abs(int(sizeIn))
+
+            if size < 3:
+                size = 3
+
+            break
+        except:
+            print("Invalid input")
+    while True:
+        imageSizeIn = input("How large should the image be? ")
+        try:
+            imageSize = abs(int(imageSizeIn))
+
+            if imageSize < size:
+                imageSize = size
+
+            break
+        except:
+            print("Invalid input")
+
+    print("Please wait... ")
+
+    # generate the maze based on the input
+    generateMaze(size, imageSize)
+
+    # check if the user wants to continue
+    keepGoingIn = input("Do you want to go again? ")
+    if not keepGoingIn.lower().startswith("y"):
+        break
