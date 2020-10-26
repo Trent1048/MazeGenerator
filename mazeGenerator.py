@@ -6,17 +6,15 @@ from mazeSpace import *
 
 def generateMaze(mazeSize, imageSize):
 
-    # make sure the maze size is odd so it won't generate wierd
-    if mazeSize % 2 == 0:
-        mazeSize += 1
-
     # get a list of what walls should be drawn
     mazeList = calculateMaze(mazeSize)
 
     # draw it as an image
-    drawMaze(mazeList, mazeSize, imageSize)
+    drawMaze(mazeList, mazeSize, imageSize, 'maze.png')
 
-def drawMaze(mazeList, mazeSize, imageSize):
+    return mazeList
+
+def drawMaze(mazeList, mazeSize, imageSize, imageName):
 
     # setup an array for image creation
     data = np.zeros((mazeSize, mazeSize, 3), dtype=np.uint8)
@@ -25,15 +23,19 @@ def drawMaze(mazeList, mazeSize, imageSize):
     for row in range(mazeSize):
         for col in range(mazeSize):
 
-            if mazeList[row][col].spaceType == SpaceType.space:
+            currentSpace = mazeList[row][col].spaceType
+
+            if currentSpace == SpaceType.space:
                 data[row, col] = [255, 255, 255]
+            elif currentSpace == SpaceType.solvedSpace:
+                data[row, col] = [0, 255, 0]
             else:
                 data[row, col] = [0, 0, 0]
 
     # turn the array into an image and save it
     img = Image.fromarray(data, 'RGB')
     img = img.resize((imageSize, imageSize), 0)
-    img.save('maze.png')
+    img.save(imageName)
     img.show()
 
 def calculateMaze(mazeSize):
@@ -99,37 +101,93 @@ def calculateMaze(mazeSize):
 
     return mazeList
 
-while True:
-    # get inputs
+def solveMaze(mazeList, mazeSize, imageSize):
+
+    # store neigboring spaces of all open spaces within the maze
+    for row in range(mazeSize):
+        for col in range(mazeSize):
+            currentSpace = mazeList[row][col]
+
+            if currentSpace.spaceType == SpaceType.space:
+                currentSpace.neighbors = []
+
+                # search surrounding spaces
+                for space in [[row - 1, col], [row + 1, col], [row, col - 1], [row, col + 1]]:
+                    # make sure space isn't outside the list
+                    if 0 <= space[0] < mazeSize and 0 <= space[1] < mazeSize:
+                        spaceBeingSearched = mazeList[space[0]][space[1]]
+                        if spaceBeingSearched.spaceType == SpaceType.space:
+                            currentSpace.neighbors.append(spaceBeingSearched)
+
+    # setup variables for solving the maze
+    startingSpace = mazeList[0][1]
+    endSpace = mazeList[mazeSize - 1][mazeSize - 2]
+    searchedSpaces = [mazeList[0][1]]
+
+    # solve recursively 
+    solveSpace(startingSpace, searchedSpaces, endSpace)
+
+    # draw the maze
+    drawMaze(mazeList, mazeSize, imageSize, 'mazeSolution.png')
+
+def solveSpace(currentSpace, searchedSpaces, endSpace):
+
+    # base case: current space is the end of the maze
+    if currentSpace == endSpace:
+        currentSpace.spaceType = SpaceType.solvedSpace
+        return True
+    
+    # check each neighboring space individually
+    for space in currentSpace.neighbors:
+        if not space in searchedSpaces:
+            searchedSpaces.append(space)
+
+            if solveSpace(space, searchedSpaces, endSpace):
+                currentSpace.spaceType = SpaceType.solvedSpace
+                return True
+
+if __name__ == "__main__":
     while True:
-        sizeIn = input("How large should the maze be? ")
-        try:
-            size = abs(int(sizeIn))
+        # get inputs
+        while True:
+            sizeIn = input("How large should the maze be? ")
+            try:
+                size = abs(int(sizeIn))
 
-            if size < 3:
-                size = 3
+                if size < 3:
+                    size = 3
 
+                break
+            except:
+                print("Invalid input")
+        while True:
+            imageSizeIn = input("How large should the image be? ")
+            try:
+                imageSize = abs(int(imageSizeIn))
+
+                if imageSize < size:
+                    imageSize = size
+
+                break
+            except:
+                print("Invalid input")
+
+        print("Please wait... ")
+
+        # make sure the maze size is odd so it won't generate wierd
+        mazeSize = size
+        if mazeSize % 2 == 0:
+            mazeSize += 1
+
+        # generate the maze based on the input
+        mazeList = generateMaze(mazeSize, imageSize)
+
+        # solve the maze if the user wants
+        displaySolution = input("Do you want to see the solution? ")
+        if displaySolution.lower().startswith("y"):
+            solveMaze(mazeList, mazeSize, imageSize)
+
+        # check if the user wants to continue
+        keepGoingIn = input("Do you want to go again? ")
+        if not keepGoingIn.lower().startswith("y"):
             break
-        except:
-            print("Invalid input")
-    while True:
-        imageSizeIn = input("How large should the image be? ")
-        try:
-            imageSize = abs(int(imageSizeIn))
-
-            if imageSize < size:
-                imageSize = size
-
-            break
-        except:
-            print("Invalid input")
-
-    print("Please wait... ")
-
-    # generate the maze based on the input
-    generateMaze(size, imageSize)
-
-    # check if the user wants to continue
-    keepGoingIn = input("Do you want to go again? ")
-    if not keepGoingIn.lower().startswith("y"):
-        break

@@ -6,6 +6,7 @@ class SpaceType(Enum):
     corner = 1
     space = 2
     wall = 3
+    solvedSpace = 4
 
 class MazeSpace:
 
