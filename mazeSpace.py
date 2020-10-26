@@ -13,3 +13,4 @@ class MazeSpace:
     def __init__(self, spaceType):
         self.spaceType = spaceType
         self.neighbors = []
+        self.parentSpace = None

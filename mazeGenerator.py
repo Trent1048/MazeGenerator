@@ -122,29 +122,30 @@ def solveMaze(mazeList, mazeSize, imageSize):
     # setup variables for solving the maze
     startingSpace = mazeList[0][1]
     endSpace = mazeList[mazeSize - 1][mazeSize - 2]
-    searchedSpaces = [mazeList[0][1]]
+    searchedSpaces = [startingSpace]
+    spaceStack = [startingSpace]
 
-    # solve recursively 
-    solveSpace(startingSpace, searchedSpaces, endSpace)
+    while len(spaceStack) > 0:
+        currentSpace = spaceStack.pop()
+
+        # if the current space is the end
+        if currentSpace == endSpace:
+            break
+
+        # add neighboring spaces to the stack to be checked
+        for space in currentSpace.neighbors:
+            if not space in searchedSpaces:
+                searchedSpaces.append(space)
+                spaceStack.append(space)
+                space.parentSpace = currentSpace
+
+    # backtrack and mark all parent spaces that got to the end
+    while currentSpace != None:
+        currentSpace.spaceType = SpaceType.solvedSpace
+        currentSpace = currentSpace.parentSpace
 
     # draw the maze
     drawMaze(mazeList, mazeSize, imageSize, 'mazeSolution.png')
-
-def solveSpace(currentSpace, searchedSpaces, endSpace):
-
-    # base case: current space is the end of the maze
-    if currentSpace == endSpace:
-        currentSpace.spaceType = SpaceType.solvedSpace
-        return True
-    
-    # check each neighboring space individually
-    for space in currentSpace.neighbors:
-        if not space in searchedSpaces:
-            searchedSpaces.append(space)
-
-            if solveSpace(space, searchedSpaces, endSpace):
-                currentSpace.spaceType = SpaceType.solvedSpace
-                return True
 
 if __name__ == "__main__":
     while True:
@@ -185,6 +186,7 @@ if __name__ == "__main__":
         # solve the maze if the user wants
         displaySolution = input("Do you want to see the solution? ")
         if displaySolution.lower().startswith("y"):
+            print("Please wait... ")
             solveMaze(mazeList, mazeSize, imageSize)
 
         # check if the user wants to continue
